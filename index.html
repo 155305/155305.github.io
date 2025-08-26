@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Transaksi Chip</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SHA-256 hashing library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            margin: 10px;
+        }
+        
+        .card {
+            padding: 20px;
+        }
+        
+        h1, h2, h3 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .tab.active {
+            color: #3498db;
+            border-bottom: 3px solid #3498db;
+        }
+        
+        .form-container {
+            position: relative;
+            height: 350px;
+            overflow: hidden;
+        }
+        
+        .form {
+            position: absolute;
+            width: 100%;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .login-form {
+            left: 0;
+        }
+        
+        .register-form {
+            left: 100%;
+        }
+        
+        .form.show {
+            left: 0;
+        }
+        
+        .form.hide {
+            left: -100%;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        
+        .input-with-icon {
+            position: relative;
+        }
+        
+        .input-with-icon i {
+            position: absolute;
+            left: 12px;
+            top: 12px;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .input-with-icon input {
+            padding-left: 40px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .logout-btn {
+            background-color: #e74c3c;
+            margin-bottom: 15px;
+        }
+        
+        .logout-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            gap: 8px;
+        }
+        
+        .nav button {
+            width: 48%;
+            font-size: 13px;
+            padding: 10px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+            font-weight: 600;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .deposit {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .withdrawal {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .summary {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            gap: 10px;
+        }
+        
+        .summary-item {
+            text-align: center;
+            flex: 1;
+            min-width: 100px;
+        }
+        
+        .summary-value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .message {
+            padding: 8px;
+            border-radius: 5px;
+            margin-bottom: 12px;
+            text-align: center;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .error {
+            background-color: #ffecec;
+            color: #e74c3c;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .success {
+            background-color: #e6f7ee;
+            color: #27ae60;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .password-requirements {
+            font-size: 11px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .total-display {
+            background-color: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+        
+        .chip-icon {
+            color: #3498db;
+            margin-right: 5px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .action-btn {
+            width: auto;
+            padding: 5px 8px;
+            font-size: 12px;
+        }
+        
+        .edit-btn {
+            background-color: #f39c12;
+        }
+        
+        .edit-btn:hover {
+            background-color: #e67e22;
+        }
+        
+        .delete-btn {
+            background-color: #e74c3c;
+        }
+        
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .filter-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .filter-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+            color: white;
+            display: none;
+        }
+        
+        .loading-overlay.show {
+            display: flex;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Profile menu */
+        .profile-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .welcome-message {
+            font-size: 14px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        
+        .profile-btn {
+            width: auto;
+            padding: 8px 12px;
+            background-color: #3498db;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .profile-menu {
+            position: absolute;
+            top: 45px;
+            right: 0;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            width: 180px;
+            z-index: 100;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .profile-menu.show {
+            display: block;
+        }
+        
+        .profile-menu button {
+            width: 100%;
+            text-align: left;
+            padding: 10px 15px;
+            border-radius: 0;
+            background-color: white;
+            color: #2c3e50;
+            border: none;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .profile-menu button:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .profile-menu button:last-child {
+            border-bottom: none;
+        }
+
+        /* Menu pilihan baru untuk jenis transaksi */
+        .submenu-container {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            display: none;
+        }
+        
+        .submenu-container.show {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .submenu-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        
+        .submenu-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .submenu-option {
+            flex: 1;
+            min-width: 120px;
+            padding: 8px 12px;
+            background-color: #e8f4fc;
+            border: 1px solid #3498db;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        
+        .submenu-option:hover {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .submenu-option.selected {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Modal untuk profil */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #7f8c8d;
+            width: auto;
+        }
+        
+        .close-btn:hover {
+            color: #e74c3c;
+        }
+        
+        .profile-info {
+            margin-bottom: 15px;
+        }
+        
+        .profile-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        
+        .profile-info-label {
+            font-weight: bold;
+            color: #7f8c8d;
+        }
+        
+        .profile-info-value {
+            color: #2c3e50;
+        }
+        
+        /* Tambahan style untuk backup section */
+        .backup-section {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #9b59b6;
+        }
+        
+        .backup-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .backup-btn {
+            flex: 1;
+            background-color: #9b59b6;
+        }
+        
+        .backup-btn:hover {
+            background-color: #8e44ad;
+        }
+        
+        .restore-btn {
+            flex: 1;
+            background-color: #2ecc71;
+        }
+        
+        .restore-btn:hover {
+            background-color: #27ae60;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .file-label {
+            display: block;
+            padding: 10px;
+            background-color: #3498db;
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .file-label:hover {
+            background-color: #2980b9;
+        }
+        
+        @media (max-width: 480px) {
+            .card {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            h2 {
+                font-size: 18px;
+            }
+            
+            .filter-row {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .summary-item {
+                min-width: 80px;
+            }
+            
+            .summary-value {
+                font-size: 12px;
+            }
+            
+            .profile-container {
+                position: relative;
+                top: 0;
+                right: 0;
+                justify-content: flex-end;
+                margin-bottom: 15px;
+            }
+            
+            .welcome-message {
+                display: none;
+            }
+            
+            .submenu-options {
+                flex-direction: column;
+            }
+            
+            .backup-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Sedang masuk, harap tunggu...</p>
+    </div>
+
+    <!-- Modal untuk profil -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Profil Pengguna</h3>
+                <button class="close-btn" id="close-profile-modal">&times;</button>
+            </div>
+            <div class="profile-info" id="profile-info">
+                <!-- Informasi profil akan diisi oleh JavaScript -->
+            </div>
+            <div class="backup-section">
+                <h3><i class="fas fa-database"></i> Backup & Restore Data</h3>
+                <p>Backup atau restore data transaksi dan akun Anda.</p>
+                <div class="backup-buttons">
+                    <button id="backup-btn" class="backup-btn"><i class="fas fa-download"></i> Backup Data</button>
+                    <label for="restore-file" class="file-label"><i class="fas fa-upload"></i> Restore Data</label>
+                    <input type="file" id="restore-file" class="file-input" accept=".json">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Profile Menu (akan ditampilkan setelah login) -->
+        <div id="profile-container" class="profile-container hidden">
+            <div id="welcome-message" class="welcome-message"></div>
+            <button id="profile-btn" class="profile-btn">
+                <i class="fas fa-user"></i>
+                <i class="fas fa-caret-down"></i>
+            </button>
+            <div id="profile-menu" class="profile-menu">
+                <button id="view-profile-btn">
+                    <i class="fas fa-user-circle"></i> Profil
+                </button>
+                <button id="backup-menu-btn">
+                    <i class="fas fa-database"></i> Backup/Restore
+                </button>
+                <button id="profile-logout-btn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Login Section -->
+        <div id="login-section" class="card">
+            <h1><i class="fas fa-poker-chip"></i> Sistem Transaksi Chip</h1>
+            
+            <div class="tabs">
+                <div class="tab active" id="login-tab">Login</div>
+                <div class="tab" id="register-tab">Daftar</div>
+            </div>
+            
+            <div class="form-container">
+                <!-- Login Form -->
+                <div class="form login-form show">
+                    <div id="login-message" class="message hidden"></div>
+                    
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="username" placeholder="Masukkan username">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="password" placeholder="Masukkan password">
+                        </div>
+                    </div>
+                    
+                    <button id="login-btn">Login</button>
+                </div>
+               
+                <!-- Register Form -->
+                <div class="form register-form">
+                    <div id="register-message" class="message hidden"></div>
+                    
+                    <div class="form-group">
+                        <label for="new-username">Username</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-user-plus"></i>
+                            <input type="text" id="new-username" placeholder="Buat username baru">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="new-password">Password</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="new-password" placeholder="Buat password baru">
+                        </div>
+                        <div class="password-requirements">
+                            Password harus minimal 6 karakter
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirm-password">Konfirmasi Password</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="confirm-password" placeholder="Konfirmasi password">
+                        </div>
+                    </div>
+                    
+                    <button id="register-btn">Daftar</button>
+                </div>
+                    </div>
+<center>
+  <div style="background-color: #e8f4fd; padding: 16px; border-radius: 10px; margin: 18px 0; border: 1px solid #b8daff;">
+    <p style="color: #004085; font-size: 12px; line-height: 1.6; margin: 0; text-align: center;">
+      <i class="fas fa-info-circle" style="color: #007bff; margin-right: 10px; font-size: 16px;"></i>
+      <strong>Informasi Penyimpanan Data</strong><br>
+      Semua data transaksi dan akun disimpan di browser perangkat Anda.<br>
+      <span style="font-size: 10px; color: #0062cc;">
+        • Backup data secara berkala untuk mencegah kehilangan data<br>
+        • Data dapat hilang jika cache browser dibersihkan<br>
+        • Gunakan fitur Restore untuk memulihkan data dari backup
+      </span>
+    </p>
+  </div>
+</center>
+                  </div>
+        <!-- Main App Section (initially hidden) -->
+        <div id="app-section" class="hidden">
+            <div class="nav">
+                <button id="transaksi-btn"><i class="fas fa-exchange-alt"></i> Transaksi</button>
+                <button id="history-btn"><i class="fas fa-history"></i> History</button>
+            </div>
+            
+            <!-- Transaksi Section -->
+            <div id="transaksi-section" class="card">
+                <h2><i class="fas fa-exchange-alt"></i> Transaksi Chip</h2>
+                
+                <div class="form-group">
+                    <label for="nomor">Nomor Transaksi</label>
+                    <input type="text" id="nomor" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="tanggal">Tanggal</label>
+                    <input type="date" id="tanggal">
+                </div>
+                
+                <div class="form-group">
+                    <label for="id-input">ID</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-id-card"></i>
+                        <input type="number" id="id-input" placeholder="Masukkan ID (angka)" min="1">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="jenis">Jenis Transaksi</label>
+                    <select id="jenis">
+                        <option value="">-- Pilih Jenis Transaksi --</option>
+                        <option value="deposit">BELI</option>
+                        <option value="withdrawal">JUAL</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="jumlah-chip"><i class="fas fa-poker-chip chip-icon"></i> Jumlah Chip (1B = 1)</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-coins"></i>
+                        <input type="number" id="jumlah-chip" placeholder="Masukkan jumlah chip" min="1">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="harga"><i class="fas fa-money-bill-wave"></i> Harga Chip per B (Rp)</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-tag"></i>
+                        <input type="number" id="harga" placeholder="Masukkan harga per B" min="1000">
+                    </div>
+                </div>
+                
+                <div class="total-display">
+                    Total: <span id="total-amount">Rp 0</span>
+                </div>
+                
+                <button id="simpan-btn"><i class="fas fa-save"></i> Simpan Transaksi</button>
+                <button id="reset-form-btn" class="logout-btn" style="margin-top: 10px;"><i class="fas fa-times"></i> Reset Form</button>
+            </div>
+            
+            <!-- History Section (initially hidden) -->
+            <div id="history-section" class="card hidden">
+                <h2><i class="fas fa-history"></i> Riwayat Transaksi</h2>
+                
+                <div class="filter-section">
+                    <div class="filter-row">
+                        <div class="form-group">
+                            <label for="filter-tanggal">Filter Tanggal</label>
+                            <input type="date" id="filter-tanggal">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-id">Filter ID</label>
+                            <input type="number" id="filter-id" placeholder="Filter berdasarkan ID" min="1">
+                        </div>
+                    </div>
+                    <div class="nav">
+                        <button id="filter-btn"><i class="fas fa-filter"></i> Terapkan Filter</button>
+                        <button id="reset-filter-btn"><i class="fas fa-redo"></i> Reset Filter</button>
+                    </div>
+                </div>
+                
+                <div class="summary">
+                    <div class="summary-item">
+                        <div>TOTAL BELI</div>
+                        <div class="summary-value" id="total-deposit">Rp 0</div>
+                    </div>
+                    <div class="summary-item">
+                        <div>TOTAL JUAL</div>
+                        <div class="summary-value" id="total-withdrawal">Rp 0</div>
+                    </div>
+                    <div class="summary-item">
+                        <div>SALDO</div>
+                        <div class="summary-value" id="saldo">Rp 0</div>
+                    </div>
+                </div>
+                
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th>No. Transaksi</th>
+                            <th>Tanggal</th>
+                            <th>ID</th>
+                            <th>Jenis</th>
+                            <th>Jumlah Chip</th>
+                            <th>Harga per Chip</th>
+                            <th>Total</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data akan diisi oleh JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elemen UI
+            const loginSection = document.getElementById('login-section');
+            const appSection = document.getElementById('app-section');
+            const transaksiSection = document.getElementById('transaksi-section');
+            const historySection = document.getElementById('history-section');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const profileContainer = document.getElementById('profile-container');
+            const welcomeMessage = document.getElementById('welcome-message');
+            const profileBtn = document.getElementById('profile-btn');
+            const profileMenu = document.getElementById('profile-menu');
+            const viewProfileBtn = document.getElementById('view-profile-btn');
+            const backupMenuBtn = document.getElementById('backup-menu-btn');
+            const profileLogoutBtn = document.getElementById('profile-logout-btn');
+            const profileModal = document.getElementById('profile-modal');
+            const closeProfileModal = document.getElementById('close-profile-modal');
+            const profileInfo = document.getElementById('profile-info');
+            const backupBtn = document.getElementById('backup-btn');
+            const restoreFileInput = document.getElementById('restore-file');
+            
+            // Tab elements
+            const loginTab = document.getElementById('login-tab');
+            const registerTab = document.getElementById('register-tab');
+            const loginForm = document.querySelector('.login-form');
+            const registerForm = document.querySelector('.register-form');
+            
+            // Input fields
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const newUsernameInput = document.getElementById('new-username');
+            const newPasswordInput = document.getElementById('new-password');
+            const confirmPasswordInput = document.getElementById('confirm-password');
+            const nomorInput = document.getElementById('nomor');
+            const tanggalInput = document.getElementById('tanggal');
+            const idInput = document.getElementById('id-input');
+            const jenisInput = document.getElementById('jenis');
+            const jumlahChipInput = document.getElementById('jumlah-chip');
+            const hargaInput = document.getElementById('harga');
+            const totalAmountDisplay = document.getElementById('total-amount');
+            const filterTanggalInput = document.getElementById('filter-tanggal');
+            const filterIdInput = document.getElementById('filter-id');
+            
+            // Message elements
+            const loginMessage = document.getElementById('login-message');
+            const registerMessage = document.getElementById('register-message');
+            
+            // Buttons
+            const loginBtn = document.getElementById('login-btn');
+            const registerBtn = document.getElementById('register-btn');
+            const transaksiBtn = document.getElementById('transaksi-btn');
+            const historyBtn = document.getElementById('history-btn');
+            const simpanBtn = document.getElementById('simpan-btn');
+            const filterBtn = document.getElementById('filter-btn');
+            const resetFilterBtn = document.getElementById('reset-filter-btn');
+            const resetFormBtn = document.getElementById('reset-form-btn');
+            
+            // Variabel untuk edit mode
+            let isEditMode = false;
+            let currentEditId = null;
+            
+            // Inisialisasi
+            initApp();
+            
+            // Event Listeners
+            loginTab.addEventListener('click', () => switchForm('login'));
+            registerTab.addEventListener('click', () => switchForm('register'));
+            loginBtn.addEventListener('click', login);
+            registerBtn.addEventListener('click', register);
+            transaksiBtn.addEventListener('click', showTransaksi);
+            historyBtn.addEventListener('click', showHistory);
+            simpanBtn.addEventListener('click', simpanTransaksi);
+            filterBtn.addEventListener('click', filterHistory);
+            resetFilterBtn.addEventListener('click', resetFilter);
+            resetFormBtn.addEventListener('click', resetForm);
+            
+            // Toggle profile menu
+            profileBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                profileMenu.classList.toggle('show');
+            });
+            
+            // View profile
+            viewProfileBtn.addEventListener('click', showProfile);
+            
+            // Backup menu
+            backupMenuBtn.addEventListener('click', showBackupMenu);
+            
+            // Close profile modal
+            closeProfileModal.addEventListener('click', function() {
+                profileModal.classList.remove('show');
+            });
+            
+            // Logout dari menu profil
+            profileLogoutBtn.addEventListener('click', logout);
+            
+            // Backup data
+            backupBtn.addEventListener('click', backupData);
+            
+            // Restore data
+            restoreFileInput.addEventListener('change', restoreData);
+            
+            // Close profile menu when clicking outside
+            document.addEventListener('click', function() {
+                profileMenu.classList.remove('show');
+            });
+            
+            // Event listeners untuk perhitungan otomatis
+            if (jumlahChipInput && hargaInput && jenisInput) {
+                jumlahChipInput.addEventListener('input', hitungTotal);
+                hargaInput.addEventListener('input', hitungTotal);
+                jenisInput.addEventListener('change', hitungTotal);
+            }
+            
+            // Fungsi untuk hash password
+            function hashPassword(password) {
+                return sha256(password);
+            }
+            
+            // Fungsi untuk beralih antara form login dan register
+            function switchForm(formType) {
+                if (formType === 'login') {
+                    loginTab.classList.add('active');
+                    registerTab.classList.remove('active');
+                    loginForm.classList.add('show');
+                    loginForm.classList.remove('hide');
+                    registerForm.classList.remove('show');
+                    registerForm.classList.add('hide');
+                    
+                    // Bersihkan pesan error saat beralih form
+                    if (registerMessage) registerMessage.classList.add('hidden');
+                } else {
+                    registerTab.classList.add('active');
+                    loginTab.classList.remove('active');
+                    registerForm.classList.add('show');
+                    registerForm.classList.remove('hide');
+                    loginForm.classList.remove('show');
+                    loginForm.classList.add('hide');
+                    
+                    // Bersihkan pesan error saat beralih form
+                    if (loginMessage) loginMessage.classList.add('hidden');
+                }
+            }
+            
+            // Fungsi untuk menampilkan profil
+            function showProfile() {
+                const username = localStorage.getItem('loggedInUser');
+                const transactions = getTransactions();
+                const userTransactions = transactions.filter(t => t.user === username);
+                
+                let totalDeposit = 0;
+                let totalWithdrawal = 0;
+                
+                userTransactions.forEach(transaction => {
+                    if (transaction.jenis === 'deposit') {
+                        totalDeposit += transaction.total;
+                    } else {
+                        totalWithdrawal += transaction.total;
+                    }
+                });
+                
+                const saldo = totalWithdrawal - totalDeposit;
+                
+                profileInfo.innerHTML = `
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Username:</span>
+                        <span class="profile-info-value">${username}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Total Transaksi:</span>
+                        <span class="profile-info-value">${userTransactions.length}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Total Beli:</span>
+                        <span class="profile-info-value">Rp ${totalDeposit.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Total Jual:</span>
+                        <span class="profile-info-value">Rp ${totalWithdrawal.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Saldo:</span>
+                        <span class="profile-info-value" style="color: ${saldo >= 0 ? '#27ae60' : '#e74c3c'}">Rp ${saldo.toLocaleString('id-ID')}</span>
+                    </div>
+                `;
+                
+                profileMenu.classList.remove('show');
+                profileModal.classList.add('show');
+            }
+            
+            // Fungsi untuk menampilkan menu backup
+            function showBackupMenu() {
+                profileMenu.classList.remove('show');
+                profileModal.classList.add('show');
+                
+                // Kosongkan info profil dan fokus ke backup
+                profileInfo.innerHTML = `
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Username:</span>
+                        <span class="profile-info-value">${localStorage.getItem('loggedInUser')}</span>
+                    </div>
+                `;
+            }
+            
+            // Fungsi untuk backup data
+            function backupData() {
+                const users = getUsers();
+                const transactions = getTransactions();
+                
+                const dataToBackup = {
+                    users: users,
+                    transactions: transactions,
+                    backupDate: new Date().toISOString(),
+                    version: '1.0'
+                };
+                
+                const dataStr = JSON.stringify(dataToBackup, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `backup_transaksi_chip_${new Date().toISOString().slice(0,10)}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                
+                alert('Backup data berhasil!');
+            }
+            
+            // Fungsi untuk restore data
+            function restoreData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                if (!confirm('PERINGATAN: Restore data akan mengganti semua data yang ada. Apakah Anda yakin?')) {
+                    restoreFileInput.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const backupData = JSON.parse(e.target.result);
+                        
+                        // Validasi data backup
+                        if (!backupData.users || !backupData.transactions) {
+                            throw new Error('Format file backup tidak valid');
+                        }
+                        
+                        // Simpan data yang di-restore
+                        saveUsers(backupData.users);
+                        saveTransactions(backupData.transactions);
+                        
+                        alert('Restore data berhasil! Aplikasi akan dimuat ulang.');
+                        
+                        // Muat ulang halaman
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } catch (error) {
+                        console.error('Error restoring data:', error);
+                        alert('Error: File backup tidak valid atau rusak.');
+                    }
+                };
+                reader.readAsText(file);
+                restoreFileInput.value = '';
+            }
+            
+            // Fungsi inisialisasi aplikasi
+            function initApp() {
+                // Set tanggal hari ini
+                const today = new Date().toISOString().split('T')[0];
+                if (tanggalInput) tanggalInput.value = today;
+                if (tanggalInput) tanggalInput.max = today; // Tidak boleh memilih tanggal setelah hari ini
+                if (filterTanggalInput) filterTanggalInput.value = today;
+                
+                // Generate nomor transaksi
+                if (nomorInput) generateNomorTransaksi();
+                
+                // Cek jika user sudah login
+                const loggedInUser = localStorage.getItem('loggedInUser');
+                if (loggedInUser) {
+                    showApp();
+                    updateWelcomeMessage(loggedInUser);
+                } else {
+                    // Pastikan profil disembunyikan saat login
+                    profileContainer.classList.add('hidden');
+                }
+            }
+            
+            // Update pesan selamat datang
+            function updateWelcomeMessage(username) {
+                welcomeMessage.textContent = `Selamat datang, ${username}!`;
+            }
+            
+            // Generate nomor transaksi otomatis
+            function generateNomorTransaksi() {
+                const transactions = getTransactions();
+                const userTransactions = transactions.filter(t => t.user === localStorage.getItem('loggedInUser'));
+                const nextId = userTransactions.length > 0 ? Math.max(...userTransactions.map(t => parseInt(t.nomor.split('-')[1]))) + 1 : 1;
+                nomorInput.value = `TRX-${nextId.toString().padStart(4, '0')}`;
+            }
+            
+            // Fungsi untuk mendapatkan transaksi dari localStorage
+            function getTransactions() {
+                const transactionsJSON = localStorage.getItem('transactions');
+                return transactionsJSON ? JSON.parse(transactionsJSON) : [];
+            }
+            
+            // Fungsi untuk menyimpan transaksi ke localStorage
+            function saveTransactions(transactions) {
+                localStorage.setItem('transactions', JSON.stringify(transactions));
+            }
+            
+            // Fungsi untuk mendapatkan user dari localStorage
+            function getUsers() {
+                const usersJSON = localStorage.getItem('users');
+                return usersJSON ? JSON.parse(usersJSON) : [];
+            }
+            
+            // Fungsi untuk menyimpan user ke localStorage
+            function saveUsers(users) {
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+            
+            // Tampilkan pesan
+            function showMessage(element, message, type) {
+                if (!element) return;
+                
+                element.textContent = message;
+                element.classList.remove('hidden', 'error', 'success');
+                element.classList.add(type);
+                
+                // Sembunyikan pesan setelah 5 detik
+                setTimeout(() => {
+                    element.classList.add('hidden');
+                }, 5000);
+            }
+            
+            // Fungsi login
+            function login() {
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value.trim();
+                
+                if (!username || !password) {
+                    showMessage(loginMessage, 'Username dan password harus diisi!', 'error');
+                    return;
+                }
+                
+                const users = getUsers();
+                const hashedPassword = hashPassword(password);
+                const user = users.find(u => u.username === username && u.password === hashedPassword);
+                
+                if (user) {
+                    // Tampilkan loading overlay
+                    loadingOverlay.classList.add('show');
+                    
+                    // Simulasi loading 5 detik
+                    setTimeout(() => {
+                        localStorage.setItem('loggedInUser', username);
+                        loadingOverlay.classList.remove('show');
+                        showApp();
+                        updateWelcomeMessage(username);
+                        usernameInput.value = '';
+                        passwordInput.value = '';
+                        showMessage(loginMessage, 'Login berhasil!', 'success');
+                    }, 5000);
+                } else {
+                    showMessage(loginMessage, 'Username atau password salah!', 'error');
+                }
+            }
+            
+            // Fungsi register
+            function register() {
+                const username = newUsernameInput.value.trim();
+                const password = newPasswordInput.value.trim();
+                const confirmPassword = confirmPasswordInput.value.trim();
+                
+                if (!username || !password || !confirmPassword) {
+                    showMessage(registerMessage, 'Semua field harus diisi!', 'error');
+                    return;
+                }
+                
+                // Validasi panjang username
+                if (username.length < 3) {
+                    showMessage(registerMessage, 'Username minimal 3 karakter!', 'error');
+                    return;
+                }
+                
+                // Validasi panjang password
+                if (password.length < 6) {
+                    showMessage(registerMessage, 'Password minimal 6 karakter!', 'error');
+                    return;
+                }
+                
+                if (password !== confirmPassword) {
+                    showMessage(registerMessage, 'Password dan konfirmasi password tidak cocok!', 'error');
+                    return;
+                }
+                
+                const users = getUsers();
+                
+                if (users.some(u => u.username === username)) {
+                    showMessage(registerMessage, 'Username sudah terdaftar!', 'error');
+                    return;
+                }
+                
+                // Hash password sebelum disimpan
+                const hashedPassword = hashPassword(password);
+                users.push({ username, password: hashedPassword });
+                saveUsers(users);
+                
+                showMessage(registerMessage, 'Akun berhasil dibuat! Silakan login.', 'success');
+                
+                // Reset form
+                newUsernameInput.value = '';
+                newPasswordInput.value = '';
+                confirmPasswordInput.value = '';
+                
+                // Beralih ke form login
+                setTimeout(() => {
+                    switchForm('login');
+                    showMessage(loginMessage, 'Silakan login dengan akun baru Anda', 'success');
+                }, 2000);
+            }
+            
+            // Fungsi logout
+            function logout() {
+                localStorage.removeItem('loggedInUser');
+                loginSection.classList.remove('hidden');
+                appSection.classList.add('hidden');
+                profileContainer.classList.add('hidden');
+                resetForm();
+                isEditMode = false;
+                currentEditId = null;
+            }
+            
+            // Tampilkan aplikasi utama
+            function showApp() {
+                loginSection.classList.add('hidden');
+                appSection.classList.remove('hidden');
+                profileContainer.classList.remove('hidden');
+                showTransaksi();
+            }
+            
+            // Tampilkan menu transaksi
+            function showTransaksi() {
+                if (transaksiSection) transaksiSection.classList.remove('hidden');
+                if (historySection) historySection.classList.add('hidden');
+                transaksiBtn.style.backgroundColor = '#2980b9';
+                historyBtn.style.backgroundColor = '#3498db';
+            }
+            
+            // Tampilkan menu history
+            function showHistory() {
+                if (transaksiSection) transaksiSection.classList.add('hidden');
+                if (historySection) historySection.classList.remove('hidden');
+                transaksiBtn.style.backgroundColor = '#3498db';
+                historyBtn.style.backgroundColor = '#2980b9';
+                tampilkanHistory();
+            }
+            
+            // Hitung total transaksi
+            function hitungTotal() {
+                const jumlahChip = parseFloat(jumlahChipInput.value) || 0;
+                const harga = parseFloat(hargaInput.value) || 0;
+                const total = jumlahChip * harga;
+                
+                totalAmountDisplay.textContent = `Rp ${total.toLocaleString('id-ID')}`;
+            }
+            
+            // Reset form transaksi
+            function resetForm() {
+                idInput.value = '';
+                jenisInput.value = '';
+                jumlahChipInput.value = '';
+                hargaInput.value = '';
+                totalAmountDisplay.textContent = 'Rp 0';
+                
+                generateNomorTransaksi();
+                
+                // Jika sedang dalam mode edit, keluar dari mode edit
+                if (isEditMode) {
+                    isEditMode = false;
+                    currentEditId = null;
+                    simpanBtn.innerHTML = '<i class="fas fa-save"></i> Simpan Transaksi';
+                    simpanBtn.style.backgroundColor = '#3498db';
+                }
+            }
+            
+            // Simpan transaksi
+            function simpanTransaksi() {
+                const nomor = nomorInput.value;
+                const tanggal = tanggalInput.value;
+                const id = idInput.value;
+                const jenis = jenisInput.value;
+                const jumlahChip = parseFloat(jumlahChipInput.value);
+                const harga = parseFloat(hargaInput.value);
+                const total = jumlahChip * harga;
+                const user = localStorage.getItem('loggedInUser');
+                
+                // Validasi input
+                if (!id || !jumlahChip || !harga) {
+                    alert('ID, Jumlah Chip, dan Harga harus diisi!');
+                    return;
+                }
+                
+                if (jumlahChip <= 0 || harga <= 0) {
+                    alert('Jumlah Chip dan Harga harus lebih dari 0!');
+                    return;
+                }
+                
+                if (!tanggal) {
+                    alert('Tanggal harus diisi!');
+                    return;
+                }
+                
+                if (!jenis) {
+                    alert('Jenis transaksi harus dipilih!');
+                    return;
+                }
+                
+                // Validasi tanggal tidak boleh lebih dari hari ini
+                const today = new Date().toISOString().split('T')[0];
+                if (tanggal > today) {
+                    alert('Tanggal tidak boleh lebih dari hari ini!');
+                    return;
+                }
+                
+                const transactions = getTransactions();
+                
+                if (isEditMode) {
+                    // Edit transaksi yang sudah ada
+                    const index = transactions.findIndex(t => t.nomor === currentEditId && t.user === user);
+                    if (index !== -1) {
+                        transactions[index] = {
+                            nomor,
+                            tanggal,
+                            id,
+                            jenis,
+                            jumlahChip,
+                            harga,
+                            total,
+                            user
+                        };
+                        saveTransactions(transactions);
+                        alert('Transaksi berhasil diupdate!');
+                    }
+                } else {
+                    // Tambah transaksi baru
+                    const transaction = {
+                        nomor,
+                        tanggal,
+                        id,
+                        jenis,
+                        jumlahChip,
+                        harga,
+                        total,
+                        user
+                    };
+                    
+                    transactions.push(transaction);
+                    saveTransactions(transactions);
+                    alert('Transaksi berhasil disimpan!');
+                }
+                
+                // Reset form
+                resetForm();
+                
+                // Tampilkan history
+                showHistory();
+            }
+            
+            // Edit transaksi
+            function editTransaksi(nomor) {
+                const transactions = getTransactions();
+                const user = localStorage.getItem('loggedInUser');
+                const transaction = transactions.find(t => t.nomor === nomor && t.user === user);
+                
+                if (transaction) {
+                    // Isi form dengan data transaksi
+                    nomorInput.value = transaction.nomor;
+                    tanggalInput.value = transaction.tanggal;
+                    idInput.value = transaction.id;
+                    jenisInput.value = transaction.jenis;
+                    jumlahChipInput.value = transaction.jumlahChip;
+                    hargaInput.value = transaction.harga;
+                    hitungTotal();
+                    
+                    // Set mode edit
+                    isEditMode = true;
+                    currentEditId = nomor;
+                    simpanBtn.innerHTML = '<i class="fas fa-edit"></i> Update Transaksi';
+                    simpanBtn.style.backgroundColor = '#f39c12';
+                    
+                    // Tampilkan form transaksi
+                    showTransaksi();
+                }
+            }
+            
+            // Hapus transaksi
+            function hapusTransaksi(nomor) {
+                if (confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
+                    const transactions = getTransactions();
+                    const user = localStorage.getItem('loggedInUser');
+                    const filteredTransactions = transactions.filter(t => !(t.nomor === nomor && t.user === user));
+                    
+                    saveTransactions(filteredTransactions);
+                    alert('Transaksi berhasil dihapus!');
+                    
+                    // Tampilkan history
+                    tampilkanHistory();
+                }
+            }
+            
+            // Tampilkan history transaksi
+            function tampilkanHistory(filterDate = null, filterId = null) {
+                const transactions = getTransactions();
+                const user = localStorage.getItem('loggedInUser');
+                let userTransactions = transactions.filter(t => t.user === user);
+                
+                // Terapkan filter jika ada
+                if (filterDate) {
+                    userTransactions = userTransactions.filter(t => t.tanggal === filterDate);
+                }
+                
+                if (filterId) {
+                    userTransactions = userTransactions.filter(t => t.id.toString() === filterId.toString());
+                }
+                
+                const tableBody = document.querySelector('#history-table tbody');
+                if (!tableBody) return;
+                
+                tableBody.innerHTML = '';
+                
+                let totalDeposit = 0;
+                let totalWithdrawal = 0;
+                
+                userTransactions.forEach(transaction => {
+                    const row = document.createElement('tr');
+                    
+                    row.innerHTML = `
+                        <td>${transaction.nomor}</td>
+                        <td>${transaction.tanggal}</td>
+                        <td>${transaction.id}</td>
+                        <td class="${transaction.jenis}">${transaction.jenis === 'deposit' ? 'Beli' : 'Jual'}</td>
+                        <td>${transaction.jumlahChip.toLocaleString('id-ID')}</td>
+                        <td>Rp ${transaction.harga.toLocaleString('id-ID')}</td>
+                        <td>Rp ${transaction.total.toLocaleString('id-ID')}</td>
+                        <td class="action-buttons">
+                            <button class="action-btn edit-btn" onclick="editTransaksi('${transaction.nomor}')"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn delete-btn" onclick="hapusTransaksi('${transaction.nomor}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                    
+                    if (transaction.jenis === 'deposit') {
+                        totalDeposit += transaction.total;
+                    } else {
+                        totalWithdrawal += transaction.total;
+                    }
+                });
+                
+                // Sesuai permintaan: saldo = withdrawal - deposit
+                const saldo = totalWithdrawal - totalDeposit;
+                
+                document.getElementById('total-deposit').textContent = `Rp ${totalDeposit.toLocaleString('id-ID')}`;
+                document.getElementById('total-withdrawal').textContent = `Rp ${totalWithdrawal.toLocaleString('id-ID')}`;
+                document.getElementById('saldo').textContent = `Rp ${saldo.toLocaleString('id-ID')}`;
+                document.getElementById('saldo').style.color = saldo >= 0 ? '#27ae60' : '#e74c3c';
+            }
+            
+            // Filter history berdasarkan tanggal dan ID
+            function filterHistory() {
+                const filterDate = filterTanggalInput.value;
+                const filterId = filterIdInput.value;
+                tampilkanHistory(filterDate, filterId);
+            }
+            
+            // Reset filter
+            function resetFilter() {
+                filterTanggalInput.value = new Date().toISOString().split('T')[0];
+                filterIdInput.value = '';
+                tampilkanHistory();
+            }
+            
+            // Expose functions to global scope for onclick attributes
+            window.editTransaksi = editTransaksi;
+            window.hapusTransaksi = hapusTransaksi;
+        });
+    </script>
+</body>
+</html>
